@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Option Pricing Results</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.24.2/plotly.min.js"></script>
+    <style>
+      .quantum-diagram-container {
+        overflow-x: auto;
+        white-space: nowrap;
+        background-color: white;
+        border-radius: 4px;
+      }
+      .quantum-diagram {
+        min-width: 800px;
+        max-width: 3000px;
+        object-fit: contain;
+      }
+      .circuit-diagram {
+        background-color: #f8f9fa;
+        white-space: pre;
+        overflow-x: auto;
+        text-align: left;
+        font-family: "Courier New", monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        margin: 0;
+      }
+      .table-quantum {
+        background-color: rgba(13, 110, 253, 0.05);
+      }
+      .table-bs {
+        background-color: rgba(25, 135, 84, 0.05);
+      }
+      .greeks-chart {
+        height: 400px;
+        margin-bottom: 30px;
+      }
+      .tab-pane {
+        padding: 15px;
+      }
+      /* Improved styling for heatmaps */
+      #greeks-heatmap {
+        width: 100%;
+        height: 800px;
+        margin-bottom: 20px;
+      }
+      .section-card {
+        margin-bottom: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .section-card .card-header {
+        font-weight: 600;
+        padding: 12px 20px;
+      }
+      .plot-container {
+        background-color: white;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <div class="row">
+        <div class="col-md-10 offset-md-1">
+          <div class="card section-card">
+            <div class="card-header bg-success text-white">
+              <h1 class="text-center">Option Pricing Results</h1>
+            </div>
+            <div class="card-body">
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Input Parameters</h3>
+                  <div class="table-responsive">
+                    <table class="table table-bordered">
+                      <tbody>
+                        <tr>
+                          <th>Stock Price</th>
+                          <td>${{ params.S }}</td>
+                          <th>Strike Price</th>
+                          <td>${{ params.K }}</td>
+                        </tr>
+                        <tr>
+                          <th>Time to Maturity</th>
+                          <td>{{ params.T }} year(s)</td>
+                          <th>Risk-Free Rate</th>
+                          <td>{{ params.r * 100 }}%</td>
+                        </tr>
+                        <tr>
+                          <th>Volatility</th>
+                          <td>{{ params.sigma * 100 }}%</td>
+                          <th>Option Type</th>
+                          <td>{{ params.option_type.capitalize() }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Option Prices Comparison</h3>
+                  <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                      <thead class="table-primary">
+                        <tr>
+                          <th>Pricing Method</th>
+                          <th>Price</th>
+                          <th>Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Black-Scholes</td>
+                          <td>${{ bs_price|round(4) }}</td>
+                          <td>Analytical solution</td>
+                        </tr>
+                        <tr>
+                          <td>Monte Carlo</td>
+                          <td>${{ mc_price|round(4) }}</td>
+                          <td>10,000 simulations</td>
+                        </tr>
+                        <tr>
+                          <td>Quantum Amplitude Estimation</td>
+                          <td>
+                            {% if quantum_error %} N/A {% else %} ${{ quantum_price|round(4) }} {% endif %}
+                          </td>
+                          <td>
+                            {% if quantum_error %} Error: {{ quantum_error }} {% else %} Using {{ params.num_qubits }} qubits {% endif %}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {% if performance_data %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Comparative Performance Analysis</h3>
+                  <div class="card shadow section-card">
+                    <div class="card-header bg-light">
+                      <ul
+                        class="nav nav-tabs card-header-tabs"
+                        id="performanceTabs"
+                        role="tablist"
+                      >
+                        <li class="nav-item" role="presentation">
+                          <button
+                            class="nav-link active"
+                            id="execution-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#execution"
+                            type="button"
+                            role="tab"
+                            aria-controls="execution"
+                            aria-selected="true"
+                          >
+                            Execution Time
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button
+                            class="nav-link"
+                            id="error-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#error"
+                            type="button"
+                            role="tab"
+                            aria-controls="error"
+                            aria-selected="false"
+                          >
+                            Error Analysis
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="card-body">
+                      <div class="tab-content" id="performanceTabContent">
+                        <!-- Execution Time Tab -->
+                        <div
+                          class="tab-pane fade show active"
+                          id="execution"
+                          role="tabpanel"
+                          aria-labelledby="execution-tab"
+                        >
+                          <div class="text-center plot-container">
+                            <img
+                              src="{{ performance_data.performance_plot }}"
+                              class="img-fluid"
+                              alt="Performance Comparison"
+                            />
+                          </div>
+                          <div class="mt-3">
+                            <p>
+                              The graph shows how execution time scales with
+                              precision for different pricing methods.
+                              Black-Scholes has constant O(1) complexity, Monte
+                              Carlo grows linearly O(n), while quantum methods
+                              theoretically offer quadratic speedup O(√n).
+                            </p>
+                          </div>
+                        </div>
+
+                        <!-- Error Analysis Tab -->
+                        <div
+                          class="tab-pane fade"
+                          id="error"
+                          role="tabpanel"
+                          aria-labelledby="error-tab"
+                        >
+                          <div class="text-center plot-container">
+                            <img
+                              src="{{ performance_data.error_plot }}"
+                              class="img-fluid"
+                              alt="Error Analysis"
+                            />
+                          </div>
+                          <div class="mt-3">
+                            <p>
+                              The graph shows how pricing error decreases with
+                              increasing computational resources. Monte Carlo
+                              error decreases as O(1/√n), while quantum methods
+                              theoretically converge faster at O(1/n).
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              {% if sensitivity_data %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Sensitivity Analysis</h3>
+                  <div class="card shadow section-card">
+                    <div class="card-header bg-light">
+                      <ul
+                        class="nav nav-tabs card-header-tabs"
+                        id="sensitivityTabs"
+                        role="tablist"
+                      >
+                        <li class="nav-item" role="presentation">
+                          <button
+                            class="nav-link active"
+                            id="surface-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#surface"
+                            type="button"
+                            role="tab"
+                            aria-controls="surface"
+                            aria-selected="true"
+                          >
+                            Volatility Surface
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button
+                            class="nav-link"
+                            id="heatmap-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#heatmap"
+                            type="button"
+                            role="tab"
+                            aria-controls="heatmap"
+                            aria-selected="false"
+                          >
+                            Greeks Heatmap
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="card-body">
+                      <div class="tab-content" id="sensitivityTabContent">
+                        <!-- Volatility Surface Tab -->
+                        <div
+                          class="tab-pane fade show active"
+                          id="surface"
+                          role="tabpanel"
+                          aria-labelledby="surface-tab"
+                        >
+                          <div
+                            id="volatility-surface"
+                            class="plot-container"
+                            style="width: 100%; height: 600px"
+                          ></div>
+                        </div>
+
+                        <!-- Greeks Heatmap Tab -->
+                        <div
+                          class="tab-pane fade"
+                          id="heatmap"
+                          role="tabpanel"
+                          aria-labelledby="heatmap-tab"
+                        >
+                          <div id="greeks-heatmap" class="plot-container"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              {% if not quantum_error and greeks %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Greeks Analysis</h3>
+                  <div class="card shadow section-card">
+                    <div class="card-header bg-light">
+                      <ul
+                        class="nav nav-tabs card-header-tabs"
+                        id="greeksTabs"
+                        role="tablist"
+                      >
+                        <li class="nav-item" role="presentation">
+                          <button
+                            class="nav-link active"
+                            id="values-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#values"
+                            type="button"
+                            role="tab"
+                            aria-controls="values"
+                            aria-selected="true"
+                          >
+                            Values
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button
+                            class="nav-link"
+                            id="visualization-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#visualization"
+                            type="button"
+                            role="tab"
+                            aria-controls="visualization"
+                            aria-selected="false"
+                          >
+                            Visualization
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button
+                            class="nav-link"
+                            id="explanation-tab"
+                            data-bs-toggle="tab"
+                            data-bs-target="#explanation"
+                            type="button"
+                            role="tab"
+                            aria-controls="explanation"
+                            aria-selected="false"
+                          >
+                            Explanation
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="card-body">
+                      <div class="tab-content" id="greeksTabContent">
+                        <!-- Values Tab -->
+                        <div
+                          class="tab-pane fade show active"
+                          id="values"
+                          role="tabpanel"
+                          aria-labelledby="values-tab"
+                        >
+                          <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                              <thead class="table-primary">
+                                <tr>
+                                  <th>Greek</th>
+                                  <th>Quantum Value</th>
+                                  <th>Black-Scholes</th>
+                                  <th>Difference</th>
+                                  <th>Interpretation</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td><strong>Delta</strong></td>
+                                  <td>{{ greeks.delta|round(4) }}</td>
+                                  <td>{{ greeks.bs_greeks.delta|round(4) }}</td>
+                                  <td>
+                                    {{ (greeks.delta - greeks.bs_greeks.delta)|round(4) }}
+                                  </td>
+                                  <td>
+                                    Price change for $1 move in underlying
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Gamma</strong></td>
+                                  <td>{{ greeks.gamma|round(4) }}</td>
+                                  <td>{{ greeks.bs_greeks.gamma|round(4) }}</td>
+                                  <td>
+                                    {{ (greeks.gamma - greeks.bs_greeks.gamma)|round(4) }}
+                                  </td>
+                                  <td>Rate of change in delta</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Theta (daily)</strong></td>
+                                  <td>{{ greeks.theta_daily|round(4) }}</td>
+                                  <td>
+                                    {{ greeks.bs_greeks.theta_daily|round(4) }}
+                                  </td>
+                                  <td>
+                                    {{ (greeks.theta_daily - greeks.bs_greeks.theta_daily)|round(4) }}
+                                  </td>
+                                  <td>Price decay per day</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Vega (1%)</strong></td>
+                                  <td>{{ greeks.vega_percent|round(4) }}</td>
+                                  <td>
+                                    {{ greeks.bs_greeks.vega_percent|round(4) }}
+                                  </td>
+                                  <td>
+                                    {{ (greeks.vega_percent - greeks.bs_greeks.vega_percent)|round(4) }}
+                                  </td>
+                                  <td>Price change for 1% vol move</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Rho (1%)</strong></td>
+                                  <td>{{ greeks.rho_percent|round(4) }}</td>
+                                  <td>
+                                    {{ greeks.bs_greeks.rho_percent|round(4) }}
+                                  </td>
+                                  <td>
+                                    {{ (greeks.rho_percent - greeks.bs_greeks.rho_percent)|round(4) }}
+                                  </td>
+                                  <td>Price change for 1% rate move</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        <!-- Visualization Tab -->
+                        <div
+                          class="tab-pane fade"
+                          id="visualization"
+                          role="tabpanel"
+                          aria-labelledby="visualization-tab"
+                        >
+                          {% if greeks_plots and greeks_plots.delta %}
+                          <div id="delta-chart" class="greeks-chart"></div>
+                          {% else %}
+                          <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Detailed
+                            visualizations require multiple simulations across
+                            different price points. For simplicity, only the
+                            Greeks values are shown in this demo.
+                          </div>
+                          {% endif %}
+                        </div>
+
+                        <!-- Explanation Tab -->
+                        <div
+                          class="tab-pane fade"
+                          id="explanation"
+                          role="tabpanel"
+                          aria-labelledby="explanation-tab"
+                        >
+                          <div class="row">
+                            <div class="col-md-6">
+                              <h5>What are Greeks?</h5>
+                              <p>
+                                Greeks measure the sensitivity of option prices
+                                to various factors. They are essential for risk
+                                management and hedging strategies in options
+                                trading.
+                              </p>
+
+                              <h5>Quantum Advantage</h5>
+                              <p>
+                                Our quantum implementation calculates Greeks
+                                using numerical differentiation on quantum
+                                circuits. This approach has the potential for
+                                quadratic speedup over classical Monte Carlo
+                                methods for high-precision calculations.
+                              </p>
+                            </div>
+                            <div class="col-md-6">
+                              <h5>Greeks Explained</h5>
+                              <ul>
+                                <li>
+                                  <strong>Delta (Δ)</strong>: Measures how much
+                                  the option price changes when the underlying
+                                  price changes by $1.
+                                </li>
+                                <li>
+                                  <strong>Gamma (Γ)</strong>: Measures the rate
+                                  of change of Delta - higher Gamma means Delta
+                                  changes more rapidly.
+                                </li>
+                                <li>
+                                  <strong>Theta (Θ)</strong>: Measures time
+                                  decay - how much the option loses value each
+                                  day.
+                                </li>
+                                <li>
+                                  <strong>Vega (ν)</strong>: Measures
+                                  sensitivity to volatility changes.
+                                </li>
+                                <li>
+                                  <strong>Rho (ρ)</strong>: Measures sensitivity
+                                  to interest rate changes.
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Higher-Order Greeks -->
+              {% if not quantum_error and higher_order_greeks.speed %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Higher-Order Greeks</h3>
+                  <div class="card shadow section-card">
+                    <div class="card-body">
+                      <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                          <thead class="table-primary">
+                            <tr>
+                              <th>Greek</th>
+                              <th>Value</th>
+                              <th>Interpretation</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td><strong>Speed</strong></td>
+                              <td>{{ higher_order_greeks.speed|round(6) }}</td>
+                              <td>Third derivative with respect to stock price</td>
+                            </tr>
+                            <tr>
+                              <td><strong>Zomma</strong></td>
+                              <td>{{ higher_order_greeks.zomma|round(6) }}</td>
+                              <td>Derivative of Gamma with respect to volatility</td>
+                            </tr>
+                            <tr>
+                              <td><strong>Color</strong></td>
+                              <td>{{ higher_order_greeks.color|round(6) }}</td>
+                              <td>Rate of change of Gamma with respect to time</td>
+                            </tr>
+                            <tr>
+                              <td><strong>Vanna</strong></td>
+                              <td>{{ higher_order_greeks.vanna|round(6) }}</td>
+                              <td>Cross derivative of Delta with respect to volatility</td>
+                            </tr>
+                            <tr>
+                              <td><strong>Ultima</strong></td>
+                              <td>{{ higher_order_greeks.ultima|round(6) }}</td>
+                              <td>Third derivative with respect to volatility</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Theoretical Speedup Analysis -->
+              {% if speedup_analysis %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Quantum Advantage Analysis</h3>
+                  <div class="card shadow section-card">
+                    <div class="card-body">
+                      <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                          <thead class="table-primary">
+                            <tr>
+                              <th>Metric</th>
+                              <th>Value</th>
+                              <th>Interpretation</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td>Precision Target</td>
+                              <td>{{ speedup_analysis.precision_target }}</td>
+                              <td>Target precision for pricing</td>
+                            </tr>
+                            <tr>
+                              <td>Classical Samples</td>
+                              <td>{{ speedup_analysis.classical_samples|int }}</td>
+                              <td>MC samples needed for target precision</td>
+                            </tr>
+                            <tr>
+                              <td>Quantum Evaluations</td>
+                              <td>{{ speedup_analysis.quantum_evaluations|int }}</td>
+                              <td>QAE evaluations needed for target precision</td>
+                            </tr>
+                            <tr>
+                              <td>Required Qubits</td>
+                              <td>{{ speedup_analysis.required_qubits }}</td>
+                              <td>Qubits needed for target precision</td>
+                            </tr>
+                            <tr>
+                              <td>Theoretical Speedup</td>
+                              <td>{{ speedup_analysis.theoretical_speedup|round(2) }}x</td>
+                              <td>Ideal quantum advantage</td>
+                            </tr>
+                            <tr>
+                              <td>Practical Speedup</td>
+                              <td>{{ speedup_analysis.practical_speedup|round(2) }}x</td>
+                              <td>Realistic quantum advantage</td>
+                            </tr>
+                            <tr>
+                              <td>Advantage Regime</td>
+                              <td>{{ speedup_analysis.advantage_regime }}</td>
+                              <td>Whether quantum is faster than classical</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Risk Management -->
+              {% if var_analysis and es_analysis %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Quantum Risk Management</h3>
+                  <div class="card shadow section-card">
+                    <div class="card-header bg-light">
+                      <ul class="nav nav-tabs card-header-tabs" id="riskTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link active" id="var-tab" data-bs-toggle="tab" data-bs-target="#var" type="button" role="tab" aria-controls="var" aria-selected="true">
+                            Value-at-Risk
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link" id="es-tab" data-bs-toggle="tab" data-bs-target="#es" type="button" role="tab" aria-controls="es" aria-selected="false">
+                            Expected Shortfall
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="card-body">
+                      <div class="tab-content" id="riskTabContent">
+                        <!-- VaR Tab -->
+                        <div class="tab-pane fade show active" id="var" role="tabpanel" aria-labelledby="var-tab">
+                          <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                              <thead class="table-primary">
+                                <tr>
+                                  <th>Metric</th>
+                                  <th>Value</th>
+                                  <th>Description</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td>Quantum VaR</td>
+                                  <td>{{ var_analysis.quantum_var|round(4) }}</td>
+                                  <td>Calculated using quantum algorithm</td>
+                                </tr>
+                                <tr>
+                                  <td>Classical VaR</td>
+                                  <td>{{ var_analysis.classical_var|round(4) }}</td>
+                                  <td>Historical simulation approach</td>
+                                </tr>
+                                <tr>
+                                  <td>Parametric VaR</td>
+                                  <td>{{ var_analysis.parametric_var|round(4) }}</td>
+                                  <td>Normal distribution assumption</td>
+                                </tr>
+                                <tr>
+                                  <td>Confidence Level</td>
+                                  <td>{{ var_analysis.confidence_level * 100 }}%</td>
+                                  <td>Statistical confidence level</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        
+                        <!-- ES Tab -->
+                        <div class="tab-pane fade" id="es" role="tabpanel" aria-labelledby="es-tab">
+                          <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                              <thead class="table-primary">
+                                <tr>
+                                  <th>Metric</th>
+                                  <th>Value</th>
+                                  <th>Description</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td>Quantum ES</td>
+                                  <td>{{ es_analysis.quantum_es|round(4) }}</td>
+                                  <td>Calculated using quantum algorithm</td>
+                                </tr>
+                                <tr>
+                                  <td>Classical ES</td>
+                                  <td>{{ es_analysis.classical_es|round(4) }}</td>
+                                  <td>Historical simulation approach</td>
+                                </tr>
+                                <tr>
+                                  <td>Parametric ES</td>
+                                  <td>{{ es_analysis.parametric_es|round(4) }}</td>
+                                  <td>Normal distribution assumption</td>
+                                </tr>
+                                <tr>
+                                  <td>Confidence Level</td>
+                                  <td>{{ es_analysis.confidence_level * 100 }}%</td>
+                                  <td>Statistical confidence level</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Market Validation -->
+              {% if market_validation is not none %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Market Validation</h3>
+                  <div class="card shadow section-card">
+                    <div class="card-body">
+                      <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                          <thead class="table-primary">
+                            <tr>
+                              <th>Ticker</th>
+                              <th>Expiry</th>
+                              <th>Strike</th>
+                              <th>Type</th>
+                              <th>Market Price</th>
+                              <th>BS Error</th>
+                              <th>MC Error</th>
+                              <th>Quantum Error</th>
+                              <th>Advanced Quantum Error</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for index, row in market_validation.iterrows() %}
+                            <tr>
+                              <td>{{ row.ticker }}</td>
+                              <td>{{ row.expiry }}</td>
+                              <td>${{ row.strike }}</td>
+                              <td>{{ row.type }}</td>
+                              <td>${{ row.market_price|round(2) }}</td>
+                              <td>{{ row.bs_error|round(2) }}%</td>
+                              <td>{{ row.mc_error|round(2) }}%</td>
+                              <td>{{ row.quantum_error|round(2) }}%</td>
+                              <td>{{ row.advanced_quantum_error|round(2) }}%</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="mt-3">
+                        <p class="small text-muted">
+                          This table compares model prices against real market options data. Lower percentage errors indicate better model accuracy.
+                          The advanced quantum model typically provides better accuracy for real-world option pricing.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Monte Carlo Simulation</h3>
+                  <div
+                    id="mc-plot"
+                    class="plot-container"
+                    style="width: 100%; height: 500px"
+                  ></div>
+                </div>
+              </div>
+
+              {% if not quantum_error and quantum_plot %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Quantum Simulation Results</h3>
+                  <div class="text-center plot-container">
+                    <img
+                      src="{{ quantum_plot }}"
+                      class="img-fluid"
+                      alt="Quantum Measurement Results"
+                    />
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              {% if not quantum_error and circuit_diagram %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Quantum Circuit Diagram</h3>
+                  <div class="text-center mb-2">
+                    <div class="card shadow">
+                      <div class="card-body p-0 quantum-diagram-container">
+                        {% if circuit_diagram is string and
+                        circuit_diagram.startswith('data:image') %}
+                        <img
+                          src="{{ circuit_diagram }}"
+                          class="quantum-diagram"
+                          alt="Quantum Circuit Diagram"
+                          style="
+                            width: 60%;
+                            max-width: 100%;
+                            height: 600px;
+                            display: block;
+                          "
+                        />
+                        {% else %}
+                        <pre class="circuit-diagram m-0 p-3">
+{{ circuit_diagram }}</pre
+                        >
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="mt-2 text-muted small">
+                      <em
+                        >Diagram shows {{ params.num_qubits }} qubits with H
+                        gates and rotation gates for option pricing</em
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Add this after the Quantum Circuit Diagram section -->
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Quantum Circuit Analysis</h3>
+                  <div class="card shadow">
+                    <div class="card-header bg-light">
+                      <ul class="nav nav-tabs card-header-tabs" id="circuitAnalysisTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link active" id="resources-tab" data-bs-toggle="tab" data-bs-target="#resources" type="button" role="tab" aria-controls="resources" aria-selected="true">
+                            Resource Analysis
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link" id="scaling-tab" data-bs-toggle="tab" data-bs-target="#scaling" type="button" role="tab" aria-controls="scaling" aria-selected="false">
+                            Qubit Scaling
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="card-body">
+                      <div class="tab-content" id="circuitAnalysisTabContent">
+                        <!-- Resource Analysis Tab -->
+                        <div class="tab-pane fade show active" id="resources" role="tabpanel" aria-labelledby="resources-tab">
+                          <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                              <thead class="table-primary">
+                                <tr>
+                                  <th>Metric</th>
+                                  <th>Value</th>
+                                  <th>Details</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td><strong>Total Gates</strong></td>
+                                  <td>{{ quantum_result.circuit_analysis.total_gates }}</td>
+                                  <td>Total number of quantum gates in the circuit</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Single-Qubit Gates</strong></td>
+                                  <td>{{ quantum_result.circuit_analysis.single_qubit_gates }}</td>
+                                  <td>Number of gates acting on a single qubit (H, X, Y, Z, etc.)</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Two-Qubit Gates</strong></td>
+                                  <td>{{ quantum_result.circuit_analysis.two_qubit_gates }}</td>
+                                  <td>Number of gates acting on two qubits (CNOT, CZ, etc.)</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Circuit Depth</strong></td>
+                                  <td>{{ quantum_result.circuit_analysis.depth }}</td>
+                                  <td>Number of time steps required to execute the circuit</td>
+                                </tr>
+                                <tr>
+                                  <td><strong>Number of Qubits</strong></td>
+                                  <td>{{ quantum_result.circuit_analysis.num_qubits }}</td>
+                                  <td>Total qubits used in the quantum circuit</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          
+                          <h5 class="mt-4">Gate Breakdown</h5>
+                          <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                              <thead class="table-primary">
+                                <tr>
+                                  <th>Gate Type</th>
+                                  <th>Count</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for gate_name, count in quantum_result.circuit_analysis.gate_counts.items() %}
+                                <tr>
+                                  <td><strong>{{ gate_name }}</strong></td>
+                                  <td>{{ count }}</td>
+                                </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+                          </div>
+                          
+                          <h5 class="mt-4">Theoretical Resource Requirements</h5>
+                          <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                              <thead class="table-primary">
+                                <tr>
+                                  <th>Target Error</th>
+                                  <th>Monte Carlo Shots</th>
+                                  <th>Quantum Shots</th>
+                                  <th>Theoretical Speedup</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for error, req in quantum_result.circuit_analysis.resource_requirements.items() %}
+                                <tr>
+                                  <td><strong>{{ error }}</strong></td>
+                                  <td>{{ req.mc_shots }}</td>
+                                  <td>{{ req.quantum_shots }}</td>
+                                  <td>{{ "%.2f"|format(req.theoretical_speedup) }}x</td>
+                                </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        
+                        <!-- Qubit Scaling Tab -->
+                        <div class="tab-pane fade" id="scaling" role="tabpanel" aria-labelledby="scaling-tab">
+                          {% if quantum_result.resource_table %}
+                          <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                              <thead class="table-primary">
+                                <tr>
+                                  <th>Qubits</th>
+                                  <th>Total Gates</th>
+                                  <th>Single-Qubit Gates</th>
+                                  <th>Two-Qubit Gates</th>
+                                  <th>Circuit Depth</th>
+                                  <th>Theoretical Speedup (1% error)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {% for row in quantum_result.resource_table %}
+                                <tr>
+                                  <td><strong>{{ row.num_qubits }}</strong></td>
+                                  <td>{{ row.total_gates }}</td>
+                                  <td>{{ row.single_qubit_gates }}</td>
+                                  <td>{{ row.two_qubit_gates }}</td>
+                                  <td>{{ row.circuit_depth }}</td>
+                                  <td>{{ "%.2f"|format(row.theoretical_speedup_01pct) }}x</td>
+                                </tr>
+                                {% endfor %}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div class="mt-3">
+                            <p>This table shows how circuit resources scale with increasing qubit count. More qubits allow for higher precision but require more complex circuits. The theoretical speedup indicates the potential quantum advantage over classical Monte Carlo methods for achieving 1% error.</p>
+                          </div>
+                          {% else %}
+                          <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Qubit scaling analysis is not available for the current calculation.
+                          </div>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- End of newly added section -->
+
+              {% if not quantum_error and model_image %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Option Pricing Model</h3>
+                  <div class="text-center plot-container">
+                    <img
+                      src="{{ model_image }}"
+                      class="img-fluid rounded shadow"
+                      alt="Option Pricing Model"
+                    />
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {% if smile_plot %}
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <h3>Implied Volatility Smile</h3>
+                  <div
+                    id="smile-plot"
+                    class="plot-container"
+                    style="width: 100%; height: 400px"
+                  ></div>
+                </div>
+              </div>
+              {% endif %}
+              <div class="row">
+                <div class="col-md-12 text-center">
+                  <a href="/" class="btn btn-primary"
+                    >Calculate Another Option</a
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="bg-light text-center text-muted py-4 mt-5">
+      <div class="container">
+        <p>Quantum Option Pricing Application | Using Qiskit & Flask</p>
+      </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <script>
+      // @ts-nocheck
+      // Load Monte Carlo plot data
+      var mcPlotData = {{ mc_plot|safe }};
+      Plotly.newPlot('mc-plot', mcPlotData.data, mcPlotData.layout);
+
+      {% if smile_plot %}
+      // Load Volatility Smile plot data
+      var smilePlotData = {{ smile_plot|safe }};
+      Plotly.newPlot('smile-plot', smilePlotData.data, smilePlotData.layout);
+      {% endif %}
+
+      {% if greeks_plots and greeks_plots.delta %}
+      // Load Greeks plots
+      var deltaPlotData = {{ greeks_plots.delta|safe }};
+      Plotly.newPlot('delta-chart', deltaPlotData.data, deltaPlotData.layout);
+      {% endif %}
+
+      {% if sensitivity_data %}
+      // Load sensitivity plots
+      var volSurfaceData = {{ sensitivity_data.volatility_surface|safe }};
+      var greeksHeatmapData = {{ sensitivity_data.greeks_heatmap|safe }};
+
+      // Custom layout for the Greeks heatmap
+      if (greeksHeatmapData && greeksHeatmapData.layout) {
+        // Adjust layout properties for better appearance
+        greeksHeatmapData.layout.height = 800;
+        greeksHeatmapData.layout.width = 900;
+        greeksHeatmapData.layout.font = {size: 12};
+
+        // Adjust colorbar properties
+        if (greeksHeatmapData.data) {
+          greeksHeatmapData.data.forEach(function(trace, i) {
+            if (trace.colorbar) {
+              trace.colorbar.len = 0.8;
+              trace.colorbar.thickness = 15;
+              trace.colorbar.title.font = {size: 12};
+            }
+          });
+        }
+      }
+
+      // Set a delay to ensure the DOM is ready
+      setTimeout(function() {
+        try {
+          Plotly.newPlot('volatility-surface', volSurfaceData.data, volSurfaceData.layout, {responsive: true});
+          Plotly.newPlot('greeks-heatmap', greeksHeatmapData.data, greeksHeatmapData.layout, {responsive: true});
+        } catch (e) {
+          console.error("Error plotting sensitivity data:", e);
+        }
+      }, 500);
+      {% endif %}
+    </script>
+
+    <script>
+      // Special function to fix the Greeks heatmap layout
+      function fixGreeksHeatmap() {
+        if (window.sensitivityData && window.sensitivityData.greeks_heatmap) {
+          try {
+            // Parse the data if it's a string
+            let heatmapData = window.sensitivityData.greeks_heatmap;
+            if (typeof heatmapData === 'string') {
+              heatmapData = JSON.parse(heatmapData);
+            }
+
+            // Store a clean copy for use in tab switching
+            window.greeksHeatmapData = JSON.parse(JSON.stringify(heatmapData));
+
+            // Fix the layout
+            const updatedLayout = {
+              ...heatmapData.layout,
+              height: 800,
+              width: 900,  // Fixed width to prevent responsiveness issues
+              margin: {
+                l: 30,  // Increased left margin for y-axis labels
+                r: 140,  // Increased right margin for colorbar
+                t: 100,  // Increased top margin for title
+                b: 80    // Increased bottom margin for x-axis labels
+              },
+              grid: {
+                rows: 2,
+                columns: 2,
+                pattern: 'independent',
+                roworder: 'top to bottom',
+                xgap: 0.3,  // Increased gap between columns
+                ygap: 0.15   // Increased gap between rows
+              }
+            };
+
+            // Fix the data - adjust colorbar positions and sizes
+            if (heatmapData.data && heatmapData.data.length >= 4) {
+              // First colorbar (Delta) - top left
+              heatmapData.data[0].colorbar = {
+                ...heatmapData.data[0].colorbar,
+                len: 0.4,          // Make it shorter
+                thickness: 15,     // Make it thinner
+                x: 0.4,           // Position to the right of the plot
+                y: 0.8,            // Position near the top
+                xpad: 10,          // Add padding
+                title: {
+                  text: "Delta",
+                  side: "right",
+                  font: { size: 12, family: "Arial, sans-serif" }
+                }
+              };
+
+              // Second colorbar (Gamma) - top right
+              heatmapData.data[1].colorbar = {
+                ...heatmapData.data[1].colorbar,
+                len: 0.4,
+                thickness: 15,
+                x: 1.0,           // Position far right
+                y: 0.8,
+                xpad: 8,
+                title: {
+                  text: "Gamma",
+                  side: "right",
+                  font: { size: 12, family: "Arial, sans-serif" }
+                }
+              };
+
+              // Third colorbar (Vega) - bottom left
+              heatmapData.data[2].colorbar = {
+                ...heatmapData.data[2].colorbar,
+                len: 0.4,
+                thickness: 15,
+                x: 0.4,
+                y: 0.2,            // Position near the bottom
+                xpad: 10,
+                title: {
+                  text: "Vega",
+                  side: "right",
+                  font: { size: 12, family: "Arial, sans-serif" }
+                }
+              };
+
+              // Fourth colorbar (Theta) - bottom right
+              heatmapData.data[3].colorbar = {
+                ...heatmapData.data[3].colorbar,
+                len: 0.4,
+                thickness: 15,
+                x: 1.0,
+                y: 0.2,
+                xpad: 8,
+                title: {
+                  text: "Theta",
+                  side: "right",
+                  font: { size: 12, family: "Arial, sans-serif" }
+                }
+              };
+            }
+
+            // Fix axis titles
+            if (heatmapData.layout) {
+              // Define fixed axis titles with consistent positioning
+              const axisConfig = {
+                title: {
+                  font: { size: 14, family: "Arial, sans-serif" },
+                  standoff: 15 // Distance from axis
+                },
+                tickfont: {
+                  size: 12,
+                  family: "Arial, sans-serif"
+                },
+                automargin: true
+              };
+
+              // Apply to all axes
+              updatedLayout.xaxis = { ...updatedLayout.xaxis, ...axisConfig, domain: [0, 0.4] };
+              updatedLayout.yaxis = { ...updatedLayout.yaxis, ...axisConfig, domain: [0.6, 1] };
+              updatedLayout.xaxis2 = { ...updatedLayout.xaxis2, ...axisConfig, domain: [0.6, 1] };
+              updatedLayout.yaxis2 = { ...updatedLayout.yaxis2, ...axisConfig, domain: [0.6, 1] };
+              updatedLayout.xaxis3 = { ...updatedLayout.xaxis3, ...axisConfig, domain: [0, 0.4] };
+              updatedLayout.yaxis3 = { ...updatedLayout.yaxis3, ...axisConfig, domain: [0, 0.4] };
+              updatedLayout.xaxis4 = { ...updatedLayout.xaxis4, ...axisConfig, domain: [0.6, 1] };
+              updatedLayout.yaxis4 = { ...updatedLayout.yaxis4, ...axisConfig, domain: [0, 0.4] };
+            }
+
+            // Render with fixed layout
+            Plotly.newPlot('greeks-heatmap', heatmapData.data, updatedLayout, {responsive: false});
+          } catch (e) {
+            console.error("Error fixing Greeks heatmap:", e);
+          }
+        }
+      }
+
+      // Call the fix function when the tab is shown
+      document.addEventListener('DOMContentLoaded', function() {
+        const heatmapTab = document.getElementById('heatmap-tab');
+        if (heatmapTab) {
+          heatmapTab.addEventListener('shown.bs.tab', function() {
+            setTimeout(fixGreeksHeatmap, 100);
+          });
+        }
+
+        // Also try to fix it on initial load if the tab is active
+        if (document.getElementById('heatmap') &&
+            document.getElementById('heatmap').classList.contains('active')) {
+          setTimeout(fixGreeksHeatmap, 500);
+        }
+      });
+
+      // Store sensitivity data globally if available
+      {% if sensitivity_data %}
+      window.sensitivityData = {
+        volatility_surface: {{ sensitivity_data.volatility_surface|safe }},
+        greeks_heatmap: {{ sensitivity_data.greeks_heatmap|safe }}
+      };
+
+      // Try to fix the heatmap after page load
+      window.addEventListener('load', function() {
+        setTimeout(fixGreeksHeatmap, 500);
+      });
+      {% endif %}
+    </script>
+  </body>
+</html>

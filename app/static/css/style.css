@@ -1,0 +1,233 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.container {
+    flex: 1 0 auto;
+}
+
+.card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    border: none;
+    margin-bottom: 2rem;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+h1 {
+    font-weight: 700;
+    font-size: 2rem;
+}
+
+h3 {
+    font-weight: 600;
+    color: #0d6efd;
+    margin-bottom: 1.2rem;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0b5ed7;
+    transform: translateY(-2px);
+}
+
+footer {
+    border-top: 1px solid #e9ecef;
+    flex-shrink: 0;
+    margin-top: 2rem;
+}
+
+.table th {
+    background-color: #f8f9fa;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+}
+
+.accordion-button:focus {
+    box-shadow: none;
+    border-color: rgba(0, 0, 0, 0.125);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Section card styling */
+.section-card {
+    margin-bottom: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.section-card .card-header {
+    font-weight: 600;
+    padding: 12px 20px;
+}
+
+/* Plot containers */
+.plot-container {
+    background-color: white;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Quantum circuit styling */
+.quantum-diagram-container {
+    overflow-x: auto;
+    white-space: nowrap;
+    background-color: white;
+    border-radius: 4px;
+}
+
+.quantum-diagram {
+    min-width: 800px;
+    max-width: 3000px;
+    object-fit: contain;
+}
+
+.circuit-diagram {
+    background-color: #f8f9fa;
+    white-space: pre;
+    overflow-x: auto;
+    text-align: left;
+    font-family: "Courier New", monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Table styling */
+.table-quantum {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.table-bs {
+    background-color: rgba(25, 135, 84, 0.05);
+}
+
+/* Greeks heatmap styling */
+#greeks-heatmap {
+    width: 100% !important;
+    height: 800px !important;
+    margin-bottom: 20px;
+}
+
+/* Tab styling */
+.nav-tabs .nav-link {
+    color: #495057;
+    font-weight: 500;
+    padding: 10px 15px;
+}
+
+.nav-tabs .nav-link.active {
+    color: #007bff;
+    border-color: #dee2e6 #dee2e6 #fff;
+    border-bottom-width: 2px;
+    border-bottom-color: #007bff;
+}
+
+.tab-pane {
+    padding: 15px;
+}
+
+.greeks-chart {
+    height: 400px;
+    margin-bottom: 30px;
+}
+
+/* Color scheme for Greeks */
+.delta-color {
+    color: #0d6efd;
+}
+
+.gamma-color {
+    color: #198754;
+}
+
+.theta-color {
+    color: #6c757d;
+}
+
+.vega-color {
+    color: #fd7e14;
+}
+
+.rho-color {
+    color: #dc3545;
+}
+
+/* Ensure all Plotly charts are responsive */
+.js-plotly-plot {
+    width: 100% !important;
+}
+
+/* Ensure proper Plotly text display */
+.gtitle,
+.xtitle,
+.ytitle {
+    font-weight: 600 !important;
+    font-size: 14px !important;
+}
+
+/* Loading indicator */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Add some responsive adjustments */
+@media (max-width: 767px) {
+    .container {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.2rem;
+    }
+
+    #greeks-heatmap {
+        height: 600px !important;
+    }
+}

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quantum Option Pricing</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container mt-5">
+      <div class="row">
+        <div class="col-md-8 offset-md-2">
+          <div class="card">
+            <div class="card-header bg-primary text-white">
+              <h1 class="text-center">Quantum Option Pricing</h1>
+            </div>
+            <div class="card-body">
+              <div class="row mb-4">
+                <div class="col-md-12">
+                  <p class="lead">
+                    This application demonstrates the power of quantum computing
+                    applied to financial option pricing. It compares classical
+                    methods (Black-Scholes and Monte Carlo) with a quantum
+                    approach using Quantum Amplitude Estimation.
+                  </p>
+                </div>
+              </div>
+
+              <form action="/calculate" method="post">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label for="stock_price" class="form-label"
+                      >Stock Price ($)</label
+                    >
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="stock_price"
+                      name="stock_price"
+                      value="100"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div class="col-md-6">
+                    <label for="strike_price" class="form-label"
+                      >Strike Price ($)</label
+                    >
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="strike_price"
+                      name="strike_price"
+                      value="110"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label for="time_to_maturity" class="form-label"
+                      >Time to Maturity (years)</label
+                    >
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="time_to_maturity"
+                      name="time_to_maturity"
+                      value="1"
+                      step="0.01"
+                      min="0.01"
+                      max="10"
+                      required
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label for="risk_free_rate" class="form-label"
+                      >Risk-Free Rate</label
+                    >
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="risk_free_rate"
+                      name="risk_free_rate"
+                      value="0.05"
+                      step="0.01"
+                      min="0"
+                      max="1"
+                      required
+                    />
+                  </div>
+                  <div class="col-md-4">
+                    <label for="volatility" class="form-label"
+                      >Volatility</label
+                    >
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="volatility"
+                      name="volatility"
+                      value="0.2"
+                      step="0.01"
+                      min="0.01"
+                      max="2"
+                      required
+                    />
+                  </div>
+                  <div class="col-md-6">
+                    <label for="option_type" class="form-label"
+                      >Option Type</label
+                    >
+                    <select
+                      class="form-select"
+                      id="option_type"
+                      name="option_type"
+                    >
+                      <option value="call" selected>Call Option</option>
+                      <option value="put">Put Option</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="num_qubits" class="form-label"
+                      >Number of Qubits</label
+                    >
+                    <select
+                      class="form-select"
+                      id="num_qubits"
+                      name="num_qubits"
+                    >
+                      <option value="3">3 (Faster)</option>
+                      <option value="4">4</option>
+                      <option value="5" selected>5</option>
+                      <option value="6">6</option>
+                      <option value="7">7</option>
+                      <option value="8">8</option>
+                      <option value="9">9</option>
+                      <option value="10">10 (More Accurate)</option>
+                    </select>
+                  </div>
+                  <div class="col-12 mt-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                      Calculate Option Price
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="card mt-4">
+            <div class="card-header">
+              <h3>How It Works</h3>
+            </div>
+            <div class="card-body">
+              <div class="accordion" id="accordionExample">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="headingOne">
+                    <button
+                      class="accordion-button"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapseOne"
+                      aria-expanded="true"
+                      aria-controls="collapseOne"
+                    >
+                      Black-Scholes Model
+                    </button>
+                  </h2>
+                  <div
+                    id="collapseOne"
+                    class="accordion-collapse collapse show"
+                    aria-labelledby="headingOne"
+                    data-bs-parent="#accordionExample"
+                  >
+                    <div class="accordion-body">
+                      <p>
+                        The Black-Scholes model is a mathematical model for
+                        pricing options. It assumes that the stock price follows
+                        a geometric Brownian motion with constant drift and
+                        volatility.
+                      </p>
+                      <p>The formula for a call option price is:</p>
+                      <p>C = S * N(d1) - K * e^(-rT) * N(d2)</p>
+                      <p>Where:</p>
+                      <ul>
+                        <li>S: Current stock price</li>
+                        <li>K: Strike price</li>
+                        <li>r: Risk-free interest rate</li>
+                        <li>T: Time to maturity</li>
+                        <li>σ: Volatility</li>
+                        <li>N(): Cumulative normal distribution function</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="headingTwo">
+                    <button
+                      class="accordion-button collapsed"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapseTwo"
+                      aria-expanded="false"
+                      aria-controls="collapseTwo"
+                    >
+                      Monte Carlo Simulation
+                    </button>
+                  </h2>
+                  <div
+                    id="collapseTwo"
+                    class="accordion-collapse collapse"
+                    aria-labelledby
+                    <div
+                    id="collapseTwo"
+                    class="accordion-collapse collapse"
+                    aria-labelledby="headingTwo"
+                    data-bs-parent="#accordionExample"
+                  >
+                    <div class="accordion-body">
+                      <p>
+                        Monte Carlo simulation is a computational method that
+                        uses random sampling to obtain numerical results. For
+                        option pricing, it simulates multiple random price paths
+                        for the underlying asset and calculates the average
+                        payoff.
+                      </p>
+                      <p>The steps are:</p>
+                      <ol>
+                        <li>
+                          Generate many random price paths using geometric
+                          Brownian motion
+                        </li>
+                        <li>Calculate the option payoff for each path</li>
+                        <li>Compute the average payoff</li>
+                        <li>Discount the result to present value</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="headingThree">
+                    <button
+                      class="accordion-button collapsed"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapseThree"
+                      aria-expanded="false"
+                      aria-controls="collapseThree"
+                    >
+                      Quantum Amplitude Estimation
+                    </button>
+                  </h2>
+                  <div
+                    id="collapseThree"
+                    class="accordion-collapse collapse"
+                    aria-labelledby="headingThree"
+                    data-bs-parent="#accordionExample"
+                  >
+                    <div class="accordion-body">
+                      <p>
+                        Quantum Amplitude Estimation (QAE) is a quantum
+                        algorithm that can provide a quadratic speedup over
+                        classical Monte Carlo methods.
+                      </p>
+                      <p>Key components:</p>
+                      <ul>
+                        <li>
+                          Quantum circuits encode both the probability
+                          distribution of asset prices and the option payoff
+                          function
+                        </li>
+                        <li>
+                          Quantum Phase Estimation is used to estimate the
+                          amplitude corresponding to the expected payoff
+                        </li>
+                        <li>
+                          The algorithm achieves a quadratic speedup, requiring
+                          O(1/ε) samples compared to O(1/ε²) for classical Monte
+                          Carlo, where ε is the desired precision
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="bg-light text-center text-muted py-4 mt-5">
+      <div class="container">
+        <p>Quantum Option Pricing Application | Using Qiskit & Flask</p>
+      </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
+</html>
