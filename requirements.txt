@@ -8,3 +8,4 @@ flask-wtf
 pandas
 scipy
 plotly
+gunicorn
