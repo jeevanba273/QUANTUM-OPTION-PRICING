@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments and secrets
+venv/
+.venv/
+.env
+
+# Local research material (kept on disk, not published)
+RESEARCH PAPERS/
+QUANTUM RESEARCH PAPER.docx
+~$*
