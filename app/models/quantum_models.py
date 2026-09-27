@@ -14,15 +14,16 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
 class QuantumAmplitudeEstimation:
-    """Option pricing using Quantum Amplitude Estimation."""
+    """Demonstration quantum circuits for option pricing (simplified; full amplitude estimation is not run)."""
     
     @staticmethod
     def _expected_payoff_circuit(S, K, r, T, sigma, num_qubits, strike_price_ratio=None):
         """
-        Create a circuit for the expected payoff function.
-        
-        This uses a linear amplitude function to encode the probability distribution
-        of the stock price and the payoff function.
+        Create a simplified demonstration payoff circuit.
+
+        Applies Hadamard gates to the input register and a single RY rotation to the
+        objective qubit, with the angle set heuristically from moneyness, time and
+        volatility.
         """
         if strike_price_ratio is None:
             strike_price_ratio = K / S
@@ -56,8 +57,9 @@ class QuantumAmplitudeEstimation:
         """
         Provides theoretical analysis of quantum computational advantage for option pricing.
         
-        This implements the novel "Precision-Scaled Quantum Advantage Metric" (PSQAM)
-        for financial derivative pricing.
+        Illustrative resource comparison between classical Monte Carlo and QAE. The
+        gate-depth and error-correction factors are simplified models, not an
+        established metric.
         
         Args:
             precision_target: Target precision (e.g., 0.001 for 0.1% error)
@@ -77,8 +79,8 @@ class QuantumAmplitudeEstimation:
         qae_evaluations = int(np.ceil(np.pi / (4 * precision_target)))
         qae_required_qubits = int(np.ceil(np.log2(qae_evaluations))) + 3  # +3 for ancilla and control
         
-        # Novel scaled advantage metric (introduced in this paper)
-        # This metric accounts for gate depth and width simultaneously
+        # Simplified cost model (illustrative)
+        # Accounts for gate depth and width simultaneously
         gate_depth_factor = 4 * qae_required_qubits  # Simplified model of circuit depth
         quantum_cost = qae_evaluations * gate_depth_factor
         classical_cost = mc_samples_required
@@ -272,8 +274,11 @@ class QuantumAmplitudeEstimation:
     @staticmethod
     def european_call_price(S, K, T, r, sigma, num_qubits=10, num_shots=1000):
         """
-        Calculate European call option price using Quantum Amplitude Estimation.
-        
+        Estimate a European call option price from a demonstration circuit.
+
+        Note: amplitude estimation is not run; the measured probability p scales the
+        Black-Scholes price by (0.7 + 0.6 * p).
+
         Args:
             S: Current stock price
             K: Strike price
@@ -352,7 +357,10 @@ class QuantumAmplitudeEstimation:
     @staticmethod
     def european_put_price(S, K, T, r, sigma, num_qubits=10, num_shots=1000):
         """
-        Calculate European put option price using Quantum Amplitude Estimation.
+        Estimate a European put option price from a demonstration circuit.
+
+        Note: amplitude estimation is not run; the measured probability p scales the
+        Black-Scholes price by (0.7 + 0.6 * p).
 
         Args:
             S: Current stock price

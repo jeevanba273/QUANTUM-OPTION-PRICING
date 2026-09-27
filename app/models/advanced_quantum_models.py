@@ -21,11 +21,14 @@ class AdvancedQuantumOptionPricing:
     @staticmethod
     def _log_normal_circuit(S, K, r, sigma, T, num_qubits, num_uncertainty_qubits):
         """
-        Create a circuit that encodes a log-normal distribution for stock price movements.
-        
-        This implementation is based on the approach described in:
-        "Option Pricing using Quantum Computers", Stamatopoulos et al. (2020)
-        
+        Create a piecewise-linear European call payoff circuit using Qiskit's
+        LinearAmplitudeFunction on a normalized [0, 1] price domain.
+
+        The payoff construction follows "Option Pricing using Quantum Computers",
+        Stamatopoulos et al. (2020), and is modelled on the Qiskit Finance tutorial
+        "Pricing European Call Options" (IBM, Apache License 2.0).
+        Note: this function does not load a log-normal distribution into the circuit.
+
         Args:
             S: Current stock price
             K: Strike price
@@ -36,7 +39,7 @@ class AdvancedQuantumOptionPricing:
             num_uncertainty_qubits: Number of qubits for encoding uncertainty
             
         Returns:
-            QuantumCircuit: Circuit encoding the log-normal distribution and payoff
+            QuantumCircuit: Circuit applying the payoff function to the uncertainty register
         """
         # Calculate distribution parameters
         mu = (r - 0.5 * sigma**2) * T
@@ -96,8 +99,9 @@ class AdvancedQuantumOptionPricing:
         """
         Create a more sophisticated quantum circuit for option pricing.
 
-        This method implements the novel "Adaptive Quantum Financial State Preparation"
-        technique for improved option pricing accuracy.
+        Experimental heuristic encoding (not an established or published method):
+        a layered CX/RZ/RY ansatz with hand-tuned skew/kurtosis factors, followed by
+        controlled rotations onto the objective qubit and an inverse QFT.
 
         Args:
             S: Current stock price
@@ -139,7 +143,7 @@ class AdvancedQuantumOptionPricing:
             normalized_strike = S / K
             theta_factor = -1.0
 
-        # Calculate market impact factor (novel parameter)
+        # Calculate market impact factor (heuristic)
         market_impact_factor = np.log(1 + abs(normalized_strike - 1))
 
         # Create a layered ansatz specifically designed for financial distributions
@@ -150,13 +154,12 @@ class AdvancedQuantumOptionPricing:
 
             # Rotation layer with financial parameters encoding
             for i in range(num_uncertainty_qubits):
-                # Novel financial parameter encoding scheme
-                # This explicitly encodes skewness and kurtosis of returns
+                # Heuristic angle encoding with hand-tuned skew/kurtosis factors
                 bit_value = 2.0 ** -(i+1)
                 skew_factor = 0.1 * sigma * np.sqrt(T)  # Financial skewness
                 kurt_factor = sigma**2 * T * 0.05       # Financial kurtosis
 
-                # Adaptive financial angle calculations (novel approach)
+                # Heuristic angle calculations
                 phi = bit_value * np.pi * (1 + skew_factor * (i/num_uncertainty_qubits))
                 theta = bit_value * np.pi * (normalized_strike * (1 + kurt_factor * market_impact_factor))
 
@@ -192,11 +195,8 @@ class AdvancedQuantumOptionPricing:
     @staticmethod
     def _quantum_financial_derivative_encoding(circuit, qubits, S, K, r, sigma, T, derivative_type='european'):
         """
-        Novel quantum encoding scheme for financial derivatives that captures higher moments
-        of the asset price distribution not addressed in previous literature.
-        
-        This implements the novel "Higher-Moment Quantum Financial Encoding" technique
-        introduced in this paper.
+        Experimental heuristic encoding for financial derivatives that adds hand-tuned
+        skewness and kurtosis rotations. Not an established or published method.
         
         Args:
             circuit: Quantum circuit to modify
@@ -217,19 +217,19 @@ class AdvancedQuantumOptionPricing:
         skewness = -0.1 if sigma > 0.3 else 0.1  # Simplified market skewness
         kurtosis = 3.0 + sigma * 2  # Excess kurtosis estimation
         
-        # Implement novel encoding circuit
+        # Heuristic encoding circuit
         # First layer: standard lognormal parameters
         for i in range(num_qubits):
             angle = np.pi * (0.5 + (np.log(S/K) + (r - 0.5 * sigma**2) * T) / (sigma * np.sqrt(T)))
             circuit.ry(angle, qubits[i])
         
-        # Second layer: higher-moment encoding (novel contribution)
+        # Second layer: skewness rotations (heuristic)
         for i in range(num_qubits-1):
             # Controlled operations encoding higher moments
             control_angle = np.pi/8 * skewness * (i+1)/num_qubits
             circuit.cry(control_angle, qubits[i], qubits[i+1])
         
-        # Third layer: kurtosis encoding (novel contribution)
+        # Third layer: kurtosis rotations (heuristic)
         for i in range(num_qubits):
             kurt_angle = np.pi/12 * (kurtosis - 3.0) * ((i+1)/num_qubits)**2
             circuit.rz(kurt_angle, qubits[i])
@@ -269,8 +269,11 @@ class AdvancedQuantumOptionPricing:
     @staticmethod
     def european_option_price(S, K, T, r, sigma, option_type='call', num_qubits=6, num_shots=10000):
         """
-        Calculate European option price using advanced quantum techniques.
-        
+        Calculate European option price using the experimental quantum circuit.
+
+        Note: the returned price blends 70% Black-Scholes with 30% of the
+        circuit-based estimate.
+
         Args:
             S: Current stock price
             K: Strike price

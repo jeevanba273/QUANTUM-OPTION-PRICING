@@ -7,11 +7,11 @@ from scipy.stats import norm
 
 class QuantumRiskManagement:
     """
-    Novel quantum algorithms for financial risk management tasks including
+    Experimental quantum circuits for financial risk management tasks including
     Value-at-Risk (VaR) and Expected Shortfall (ES) calculations.
-    
-    This class implements the "Quantum Financial Tail Risk" (QFTR) framework
-    introduced in this paper.
+
+    These use heuristic encodings and hand-tuned calibration constants; they are
+    not established or published methods.
     """
     
     @staticmethod
@@ -19,7 +19,7 @@ class QuantumRiskManagement:
         """
         Create a quantum circuit for Value-at-Risk calculation.
         
-        This implements the novel "Quantum Amplitude-Based VaR" technique.
+        Uses an experimental, heuristic amplitude-based encoding.
         
         Args:
             returns: Array of historical returns
@@ -41,14 +41,13 @@ class QuantumRiskManagement:
         qc.h(range(num_qubits))
         
         # Encode the return distribution
-        # Novel encoding approach that preserves tail characteristics
+        # Heuristic encoding that emphasizes tail events
         for i in range(num_qubits):
             # Calculate rotation angle based on return distribution
-            # This uses a novel quantum technique for heavy-tailed distributions
             bit_value = 2.0 ** -(i+1)
-            
-            # Novel approach: Use higher weights for tail events
-            tail_emphasis = 1.5  # Emphasize tail events (novel parameter)
+
+            # Use higher weights for tail events
+            tail_emphasis = 1.5  # Hand-tuned tail weighting
             
             # Calculate quantile threshold
             quantile_threshold = np.quantile(normalized_returns, 1 - confidence_level)
@@ -56,7 +55,7 @@ class QuantumRiskManagement:
             # Calculate proportion of returns in tail
             tail_proportion = sum(1 for r in normalized_returns if r <= quantile_threshold) / len(normalized_returns)
             
-            # Novel angle calculation that emphasizes tail events
+            # Heuristic angle calculation that emphasizes tail events
             angle = np.pi * bit_value * (1 - tail_proportion) * tail_emphasis
             
             # Apply rotation
@@ -105,8 +104,8 @@ class QuantumRiskManagement:
         min_return = min(returns)
         max_return = max(returns)
         
-        # Novel calibration technique (contribution of this paper)
-        calibration_factor = 1.2  # Novel calibration parameter
+        # Heuristic calibration
+        calibration_factor = 1.2  # Hand-tuned constant
         
         # Calculate quantum VaR
         quantum_var = min_return + (max_return - min_return) * (1 - prob_tail * calibration_factor)
@@ -134,7 +133,7 @@ class QuantumRiskManagement:
         """
         Create a quantum circuit for Expected Shortfall calculation.
         
-        This implements the novel "Quantum Conditional Expectation" technique.
+        Uses an experimental, heuristic conditional-expectation encoding.
         
         Args:
             returns: Array of historical returns
@@ -241,8 +240,8 @@ class QuantumRiskManagement:
         min_return = min(returns)
         max_return = max(returns)
         
-        # Novel calibration technique (contribution of this paper)
-        calibration_factor = 1.3  # Novel calibration parameter for ES
+        # Heuristic calibration
+        calibration_factor = 1.3  # Hand-tuned constant for ES
         
         # Calculate quantum ES
         quantum_es = min_return + (max_return - min_return) * (prob_es * calibration_factor)

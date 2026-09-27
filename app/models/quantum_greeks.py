@@ -18,11 +18,9 @@ class QuantumGreeks:
     @staticmethod
     def calculate_all_greeks(S, K, T, r, sigma, option_type, num_qubits=10, num_shots=1000):
         """
-        Calculate all Greeks for a European option using quantum circuits with novel
-        higher-order and cross-Greek computations.
-        
-        This implements the novel "Quantum Higher-Order Greeks" (QHOG) technique
-        introduced in this paper.
+        Calculate all Greeks for a European option, including higher-order and cross
+        Greeks (Speed, Zomma, Color, Vanna, Ultima), by finite differences on the
+        quantum pricing function.
         
         Args:
             S: Current stock price
@@ -78,7 +76,7 @@ class QuantumGreeks:
         # Calculate Black-Scholes Greeks for comparison
         bs_greeks = QuantumGreeks.black_scholes_greeks(S, K, T, r, sigma, option_type)
         
-        # Add novel Higher-Order Greeks calculations
+        # Higher-order Greeks by finite differences
         # Calculate Speed (third derivative with respect to S)
         delta_up = (price_up_S - base_price) / dS
         delta_down = (base_price - price_down_S) / dS
@@ -120,7 +118,7 @@ class QuantumGreeks:
         
         ultima = (vega_up - 2*vega + vega_down) / (dsigma ** 2)
         
-        # Add novel quantum-specific uncertainty quantification
+        # Heuristic uncertainty estimate (hand-tuned scaling factors)
         # Uncertainty is proportional to 1/sqrt(num_shots) in measurement statistics
         uncertainty_factor = 1.0 / np.sqrt(num_shots)
         
@@ -148,7 +146,7 @@ class QuantumGreeks:
             "color": color,            # Higher-order Greek
             "vanna": vanna,            # Cross Greek
             "ultima": ultima,          # Higher-order Greek
-            "uncertainty_metric": uncertainty_metric,  # Novel quantum uncertainty metric
+            "uncertainty_metric": uncertainty_metric,  # Heuristic uncertainty estimate
             "bs_greeks": bs_greeks,
             "params": {
                 "S": S,
